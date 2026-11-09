@@ -3,6 +3,7 @@
  * Copyright (c) 2019 MediaTek Inc.
 */
 
+#include <linux/pinctrl/consumer.h>
 #include <usb20.h>
 #include <musb_io.h>
 #include <mtk_musb_reg.h>
@@ -183,6 +184,12 @@ u32 typec_control;
 module_param(typec_control, int, 0644);
 static bool typec_req_host;
 static bool iddig_req_host;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* RMX2020 (oplus): OTG switch pinctrl states (otg_iddg_high / otg_gpio_low) */
+static struct pinctrl *pinctrl_otg;
+static struct pinctrl_state *pinctrl_iddig;
+static struct pinctrl_state *pinctrl_low;
+#endif
 
 static void do_host_work(struct work_struct *data);
 static void issue_host_work(int ops, int delay, bool on_st)
@@ -551,6 +558,36 @@ static irqreturn_t mt_usb_ext_iddig_int(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*
+ * OTG on/off from the oplus charger. The 4.14 version also had a tcpc based path for the
+ * 19747/0x206AC (Monet) projects; only the iddig/pinctrl path (RMX2020, project 19741) is ported.
+ */
+void musb_ctrl_host(bool on_off)
+{
+	if (!on_off) {
+		if (iddig_req_host) {
+			DBG(0, "USB is in otg host mode, force to otg disable\n");
+			mt_usb_ext_iddig_int(0, 0);
+		}
+		if (!IS_ERR_OR_NULL(pinctrl_low)) {
+			DBG(0, "pinctrl_otg to pinctrl_low\n");
+			pinctrl_select_state(pinctrl_otg, pinctrl_low);
+		}
+	} else {
+		if (!iddig_eint_num) {
+			DBG(0, "host not inited, directly return\n");
+			return;
+		}
+		if (!IS_ERR_OR_NULL(pinctrl_iddig)) {
+			DBG(0, "pinctrl_otg to pinctrl_iddig\n");
+			pinctrl_select_state(pinctrl_otg, pinctrl_iddig);
+		}
+	}
+}
+EXPORT_SYMBOL(musb_ctrl_host);
+#endif /* OPLUS_FEATURE_CHG_BASIC */
+
 static const struct of_device_id otg_iddig_of_match[] = {
 	{.compatible = "mediatek,usb_iddig_bi_eint"},
 	{},
@@ -566,6 +603,21 @@ static int otg_iddig_probe(struct platform_device *pdev)
 	DBG(0, "iddig_eint_num<%d>\n", iddig_eint_num);
 	if (iddig_eint_num < 0)
 		return -ENODEV;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	pinctrl_otg = devm_pinctrl_get(&pdev->dev);
+	if (IS_ERR(pinctrl_otg)) {
+		dev_err(&pdev->dev, "Cannot find usb pinctrl_otg!\n");
+	} else {
+		pinctrl_iddig = pinctrl_lookup_state(pinctrl_otg, "otg_iddg_high");
+		if (IS_ERR(pinctrl_iddig))
+			dev_err(&pdev->dev, "Cannot find usb pinctrl_otg otg_iddg_high\n");
+		pinctrl_low = pinctrl_lookup_state(pinctrl_otg, "otg_gpio_low");
+		if (IS_ERR(pinctrl_low))
+			dev_err(&pdev->dev, "Cannot find usb pinctrl_otg otg_gpio_low\n");
+		else
+			pinctrl_select_state(pinctrl_otg, pinctrl_low);
+	}
+#endif
 
 	ret = request_irq(iddig_eint_num, mt_usb_ext_iddig_int,
 					IRQF_TRIGGER_LOW, "USB_IDDIG", NULL);

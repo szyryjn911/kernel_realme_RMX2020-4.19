@@ -21,10 +21,12 @@ static u16 kpd_keymap_state[KPD_NUM_MEMS] = {
 	0xffff, 0xffff, 0xffff, 0xffff, 0x00ff
 };
 
+#ifndef CONFIG_MTK_BOOT
 unsigned int get_boot_mode(void)
 {
 	return 0;
 }
+#endif
 
 static void enable_kpd(int enable)
 {

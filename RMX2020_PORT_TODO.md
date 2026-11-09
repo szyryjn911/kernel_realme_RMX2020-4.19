@@ -53,8 +53,7 @@ Source of RMX2020 code: szyryjn911/android_kernel_realme_RMX2020 branch 17.0 (4.
   primary_display.c (resume power, aging-test backlight), ddp_dsi.c (per-panel MIPI clock change),
   mtkfb.c (dynamic MIPI clock hook for the 6 oplus panels), mtk_disp_mgr.c, disp_cust.c (led_rm), disp_recovery.c
 - Weak externs written by the display code (oplus_flag_lcd_off, oplus_display_twelvebits_support, cabc_sun_flag) are now
-  strongly defined (lcm_i2c_oppo.c); oppo_boot_mode defined in drivers/soc/oppo/oppo_boot_mode.c (defaults to normal boot,
-  the 4.14 boot code that sets it from the bootloader is NOT ported: silence/safe/aging boot are not detected)
+  strongly defined (lcm_i2c_oppo.c); oppo_boot_mode comes from the ported boot driver (drivers/misc/mediatek/boot, see Fix 8)
 - mtk_boot_common.h got the OPPO boot mode enums
 - Skipped on purpose: oplus lcm_set_reset_pin variant (4.19 version is equivalent when dts_gpio_state == 0), AOD log strings
 - primary_display.c: 2 hunks not ported (commented-out widevine ion_free, one DISPCHECK log)
@@ -65,6 +64,16 @@ Source of RMX2020 code: szyryjn911/android_kernel_realme_RMX2020 branch 17.0 (4.
   gm->boot_mode which the overlaid 4.14 struct mtk_battery does not have (same reason as the charger/battery overlay).
 - Compile sweep of every other dir including the overlaid battery/charger headers (pmic, typec/tcpc, thermal, flashlight, rtc,
   pmic_wrap): 84 objects, 0 errors.
+
+## Fix 8 (undefined symbols from the first real link)
+- ported the 4.14 boot drivers: drivers/misc/mediatek/boot (get_boot_mode, is_meta_mode, ...) and boot_reason (get_boot_reason).
+  4.19 only has a stub get_boot_mode() returning 0 in hal_kpd.c (now guarded by CONFIG_MTK_BOOT). Needed for off-mode charging / meta mode.
+  MEDIATEK_SOLUTION dependency replaced by ARCH_MEDIATEK (symbol does not exist in 4.19).
+- led_rm (leds/mt6768 + dts property led_rm), musb_ctrl_host (usb20_host.c, iddig/pinctrl path only: the Monet 19747/0x206AC tcpc path is NOT ported)
+- oppo_compat.c: oplus_silence_mode, oplus_fp_silence_mode, oplus_display_cabc_cmdq_support (default false), devinfo_info_set (-> register_device_proc),
+  typec_cc_orientation (extern in the always-built Xiaomi tcpc_fusb303.c, defined nowhere)
+- nvt_update_firmware: stock 4.19 call for the Xiaomi tianma/dijing NT36672 panels, now a weak extern
+- rmx2020.config: 30 Xiaomi (merlin/lancelot) options switched off (TCPC_WUSB3801, SMB1351, FPC/GOODIX fingerprint, LM3697, NFC, TOUCHSCREEN_MTK, ...)
 
 ## Stage 2+ (NOT done): drivers missing in the 4.19 tree
 Config symbols from RMX2020_defconfig that have no Kconfig entry in 4.19 are listed in

@@ -115,6 +115,10 @@ static unsigned long long current_t, last_time;
 static int count;
 static char buffer[4096] = "[BL] Set Backlight directly ";
 
+/* RMX2020 (oplus): read from the "led_rm" dts property, used by display code */
+int led_rm;
+EXPORT_SYMBOL(led_rm);
+
 static void backlight_debug_log(int level, int mappingLevel)
 {
 	unsigned long cur_time_mod = 0;
@@ -203,6 +207,9 @@ struct cust_mt65xx_led *get_cust_led_dtsi(void)
 
 		isSupportDTS = true;
 		ret = of_property_read_u32(led_node, "led_mode", &mode);
+#ifdef OPLUS_BUG_COMPATIBILITY
+		ret = of_property_read_u32(led_node, "led_rm", &led_rm);
+#endif
 		if (!ret) {
 			pled_dtsi[i].mode = mode;
 			LEDS_DEBUG("The %s's led mode is : %d\n",

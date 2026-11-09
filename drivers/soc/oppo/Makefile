@@ -37,4 +37,4 @@ obj-$(CONFIG_OPPO_SVELTE)     +=  oppo_svelte/
 #endifi /* OPLUS_FEATURE_MEMLEAK_DETECT */
 
 obj-y += update_tpfw_notifier.o
-obj-y += oppo_boot_mode.o
+obj-y += oppo_compat.o
