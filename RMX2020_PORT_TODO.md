@@ -60,6 +60,12 @@ Source of RMX2020 code: szyryjn911/android_kernel_realme_RMX2020 branch 17.0 (4.
 - primary_display.c: 2 hunks not ported (commented-out widevine ion_free, one DISPCHECK log)
 - RISK: panel timing/backlight code is only compile-tested; first boot may show a black screen or wrong backlight.
 
+## Fix 7 (reported from a real build)
+- drivers/misc/mediatek/power/mt6768/{mtk_battery_intf.c,misc.c,Makefile} overlaid with the 4.14 versions: the 4.19 file used
+  gm->boot_mode which the overlaid 4.14 struct mtk_battery does not have (same reason as the charger/battery overlay).
+- Compile sweep of every other dir including the overlaid battery/charger headers (pmic, typec/tcpc, thermal, flashlight, rtc,
+  pmic_wrap): 84 objects, 0 errors.
+
 ## Stage 2+ (NOT done): drivers missing in the 4.19 tree
 Config symbols from RMX2020_defconfig that have no Kconfig entry in 4.19 are listed in
 RMX2020_PENDING_CONFIG.txt. Directories that still need to be ported from the 4.14 tree:
