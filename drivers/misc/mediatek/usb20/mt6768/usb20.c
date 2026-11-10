@@ -180,6 +180,11 @@ static void usb_dpidle_request(int mode)
 
 void Charger_Detect_Init(void)
 {
+	if (IS_ERR_OR_NULL(glue) || IS_ERR_OR_NULL(glue->phy)) {
+		pr_notice("%s: usb phy not ready, skip\n", __func__);
+		return;
+	}
+
 	usb_prepare_enable_clock(true);
 
 	/* wait 50 usec. */
@@ -195,6 +200,11 @@ EXPORT_SYMBOL(Charger_Detect_Init);
 
 void Charger_Detect_Release(void)
 {
+	if (IS_ERR_OR_NULL(glue) || IS_ERR_OR_NULL(glue->phy)) {
+		pr_notice("%s: usb phy not ready, skip\n", __func__);
+		return;
+	}
+
 	usb_prepare_enable_clock(true);
 
 	phy_set_mode_ext(glue->phy, PHY_MODE_USB_DEVICE, PHY_MODE_BC11_SW_CLR);

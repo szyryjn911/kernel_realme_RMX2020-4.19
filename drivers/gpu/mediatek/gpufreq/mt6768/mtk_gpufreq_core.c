@@ -2836,21 +2836,22 @@ static void __mt_gpufreq_init_efuse(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_MTK_DEVINFO
+	g_efuse_id = 0x0;
 	efuse_cell = nvmem_cell_get(&pdev->dev, "efuse_segment_cell");
 	if (IS_ERR(efuse_cell)) {
-		gpufreq_pr_err("@%s: cannot get efuse_segment_cell\n", __func__);
-		PTR_ERR(efuse_cell);
+		gpufreq_pr_err("@%s: cannot get efuse_segment_cell (%ld), using default segment\n",
+				__func__, PTR_ERR(efuse_cell));
+	} else {
+		efuse_buf = (unsigned int *)nvmem_cell_read(efuse_cell, &efuse_len);
+		nvmem_cell_put(efuse_cell);
+		if (IS_ERR(efuse_buf)) {
+			gpufreq_pr_err("@%s: cannot get efuse_buf of efuse segment (%ld)\n",
+					__func__, PTR_ERR(efuse_buf));
+		} else {
+			g_efuse_id = (*efuse_buf & 0xFF);
+			kfree(efuse_buf);
+		}
 	}
-
-	efuse_buf = (unsigned int *)nvmem_cell_read(efuse_cell, &efuse_len);
-	nvmem_cell_put(efuse_cell);
-	if (IS_ERR(efuse_buf)) {
-		gpufreq_pr_err("@%s: cannot get efuse_buf of efuse segment\n", __func__);
-	    PTR_ERR(efuse_buf);
-	}
-
-	g_efuse_id = (*efuse_buf & 0xFF);
-	kfree(efuse_buf);
 
 #else
 	g_efuse_id = 0x0;
