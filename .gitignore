@@ -131,3 +131,10 @@ all.config
 
 # Kdevelop4
 *.kdev4
+
+# Ignore
+AnyKernel3/
+build.sh                                                                         log.txt
+neutron-clang/
+out/
+log.txt

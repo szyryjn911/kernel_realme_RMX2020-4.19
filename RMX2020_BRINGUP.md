@@ -18,3 +18,15 @@ What bring-up config changes (rmx2020_bringup.config):
 Known not-working / unverified: camera, fingerprint, sia81xx amp, NFC, TEE (tkcore/teei), MTK_RAM_CONSOLE/AEE,
 boot-mode detection (silence/safe/aging), display/touch/charging are compile-tested only.
 Useful logs after a failed boot: /sys/fs/pstore (ramoops needs a reserved-memory node, not added), UART ttyMT3 921600.
+
+## Bootloop: "[SSPM] cannot find property" + "Unable to handle kernel paging request" in sspm_mbox_send (via mt_freqhopping_init)
+Cause 1 (kernel): the 4.19 SSPM driver failed its probe because the dtb it was given had no `sspm_mem_key`
+(4.14 style sspm node). A failed probe unmaps the mailbox, then freqhopping crashes in sspm_mbox_send().
+drivers/misc/mediatek/sspm/v1/sspm_reservedmem.c is now tolerant (the key/table are not used for anything).
+Cause 2 (boot image): the 4.19 mt6768.dts DOES contain sspm_mem_key, so the kernel was running with a different (stock 4.14)
+dtb. With boot header v2 the bootloader takes the dtb from the boot image's own dtb section and ignores the one appended
+to the kernel, and an AnyKernel zip keeps the old section.
+Check: dtc -I dtb -O dts out/arch/arm64/boot/dts/mediatek/mt6768.dtb | grep sspm_mem_key      (must print the property)
+Fix  : python3 scripts/rmx2020_mkboot.py STOCK_BOOT.img out  ->  new-boot.img  (new kernel + new merged dtb, rest from stock)
+       fastboot boot new-boot.img      (temporary, nothing is flashed)
+Or   : STOCK_BOOT=boot_backup.img bash RMX2020-4.19.sh mkboot

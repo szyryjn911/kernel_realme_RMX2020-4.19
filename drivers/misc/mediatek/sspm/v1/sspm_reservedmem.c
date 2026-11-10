@@ -130,6 +130,7 @@ EXPORT_SYMBOL_GPL(sspm_sbuf_get);
 int sspm_reserve_memory_init(struct platform_device *pdev)
 {
 	unsigned int id;
+	int sspm_mem_cnt;
 	unsigned int sspm_mem_num = 0;
 	unsigned int i, m_idx, m_size;
 	int ret;
@@ -145,18 +146,26 @@ int sspm_reserve_memory_init(struct platform_device *pdev)
 	ret = of_property_read_string(pdev->dev.of_node, "sspm_mem_key",
 			&mem_key);
 	if (ret) {
-		pr_info("[SSPM] cannot find property\n");
-		return -EINVAL;
+		/*
+		 * RMX2020 port: an older (4.14 style) dtb has no sspm_mem_key/sspm_mem_tbl.
+		 * The key is not used below and the block sizes come from sspm_reserve_mblock[],
+		 * so do not fail the whole probe (a failed probe unmaps the mailbox and
+		 * freqhopping then crashes in sspm_mbox_send()).
+		 */
+		pr_info("[SSPM] cannot find property sspm_mem_key, using defaults\n");
+		mem_key = "mediatek,reserve-memory-sspm_share";
 	}
 
 	/* Set reserved memory table */
-	sspm_mem_num = of_property_count_u32_elems(
+	sspm_mem_cnt = of_property_count_u32_elems(
 				pdev->dev.of_node,
-				"sspm_mem_tbl")
-				/ MEMORY_TBL_ELEM_NUM;
-	if (sspm_mem_num <= 0) {
+				"sspm_mem_tbl");
+	/* a missing property returns a negative errno: do not let it wrap into a huge unsigned loop count */
+	if (sspm_mem_cnt < MEMORY_TBL_ELEM_NUM) {
 		pr_info("[SSPM] SSPM_mem_tbl not found\n");
 		sspm_mem_num = 0;
+	} else {
+		sspm_mem_num = sspm_mem_cnt / MEMORY_TBL_ELEM_NUM;
 	}
 	for (i = 0; i < sspm_mem_num; i++) {
 		ret = of_property_read_u32_index(pdev->dev.of_node,

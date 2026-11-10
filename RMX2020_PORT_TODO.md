@@ -75,6 +75,13 @@ Source of RMX2020 code: szyryjn911/android_kernel_realme_RMX2020 branch 17.0 (4.
 - nvt_update_firmware: stock 4.19 call for the Xiaomi tianma/dijing NT36672 panels, now a weak extern
 - rmx2020.config: 30 Xiaomi (merlin/lancelot) options switched off (TCPC_WUSB3801, SMB1351, FPC/GOODIX fingerprint, LM3697, NFC, TOUCHSCREEN_MTK, ...)
 
+## Fix 12 (first boot: SSPM probe failure -> freqhopping panic)
+- sspm/v1/sspm_reservedmem.c: sspm_mem_key / sspm_mem_tbl missing in the dtb no longer fail the probe
+  (also fixes a negative of_property_count_u32_elems() wrapping into a huge unsigned loop count)
+- scripts/rmx2020_mkboot.py (+ `mkboot` in RMX2020-4.19.sh): repack the STOCK boot.img with the new kernel and the new merged dtb;
+  tested on synthetic header v1/v2 images (kernel, dtb, ramdisk, cmdline, offsets verified after unpack)
+- Likely root cause of the bootloop: the bootloader used the stock 4.14 dtb from the boot image dtb section (not verified on the device)
+
 ## Stage 2+ (NOT done): drivers missing in the 4.19 tree
 Config symbols from RMX2020_defconfig that have no Kconfig entry in 4.19 are listed in
 RMX2020_PENDING_CONFIG.txt. Directories that still need to be ported from the 4.14 tree:
