@@ -38,3 +38,4 @@ obj-$(CONFIG_OPPO_SVELTE)     +=  oppo_svelte/
 
 obj-y += update_tpfw_notifier.o
 obj-y += oppo_compat.o
+obj-y += oppo_dtb_check.o

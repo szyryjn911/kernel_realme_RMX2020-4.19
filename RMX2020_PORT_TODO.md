@@ -82,6 +82,10 @@ Source of RMX2020 code: szyryjn911/android_kernel_realme_RMX2020 branch 17.0 (4.
   tested on synthetic header v1/v2 images (kernel, dtb, ramdisk, cmdline, offsets verified after unpack)
 - Likely root cause of the bootloop: the bootloader used the stock 4.14 dtb from the boot image dtb section (not verified on the device)
 
+## Fix 13
+- oppo_dtb_check.c: early_initcall that logs whether the running dtb has sspm_mem_key (4.19 port dtb) or not (stock 4.14 dtb)
+- user-side band-aids (scp_dvfs break, usb Charger_Detect_* phy check, gpufreq efuse fallback) are fine as safety nets
+
 ## Stage 2+ (NOT done): drivers missing in the 4.19 tree
 Config symbols from RMX2020_defconfig that have no Kconfig entry in 4.19 are listed in
 RMX2020_PENDING_CONFIG.txt. Directories that still need to be ported from the 4.14 tree:

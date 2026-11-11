@@ -590,6 +590,7 @@ void wait_scp_dvfs_init_done(void)
 		if (count > 3000) {
 			pr_err("SCP dvfs driver init fail\n");
 			WARN_ON(1);
+			break;
 		}
 	}
 }
