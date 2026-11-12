@@ -30,3 +30,12 @@ Check: dtc -I dtb -O dts out/arch/arm64/boot/dts/mediatek/mt6768.dtb | grep sspm
 Fix  : python3 scripts/rmx2020_mkboot.py STOCK_BOOT.img out  ->  new-boot.img  (new kernel + new merged dtb, rest from stock)
        fastboot boot new-boot.img      (temporary, nothing is flashed)
 Or   : STOCK_BOOT=boot_backup.img bash RMX2020-4.19.sh mkboot
+
+## Which dtb is the kernel really running with? ("RMX2020 dtb check")
+drivers/soc/oppo/oppo_dtb_check.c prints one line before any driver probes, e.g.
+    RMX2020 dtb check: fdt 167770 bytes, 2100 nodes, sspm_mem_key=1 nvmem-cells=3 phys=1 => 4.19 port dtb OK
+or  ... sspm_mem_key=0 ... => LOOKS LIKE THE STOCK 4.14 DTB (the boot image dtb is not the 4.19 one)
+Read it from last_kmsg / pstore console (adb shell dmesg | grep "dtb check" if it boots).
+The 4.19 drivers that failed one after another (SSPM sspm_mem_key, gpufreq efuse_segment_cell, usb glue phys, scp_dvfs) all
+need properties the 4.14 dts does not have, so they are symptoms of the same thing: a 4.14 dtb under the 4.19 kernel.
+Null-check/break patches only hide the next failure; the fix is the right dtb (scripts/rmx2020_mkboot.py).

@@ -39,3 +39,10 @@ Read it from last_kmsg / pstore console (adb shell dmesg | grep "dtb check" if i
 The 4.19 drivers that failed one after another (SSPM sspm_mem_key, gpufreq efuse_segment_cell, usb glue phys, scp_dvfs) all
 need properties the 4.14 dts does not have, so they are symptoms of the same thing: a 4.14 dtb under the 4.19 kernel.
 Null-check/break patches only hide the next failure; the fix is the right dtb (scripts/rmx2020_mkboot.py).
+
+## mkboot needs fdtoverlay
+rmx2020_mkboot.py now stops (no image is written) if the overlay cannot be merged into the dtb, because an image with only the
+plain mt6768.dtb has none of the RMX2020 hardware nodes (display, touch, charger, battery ...) unless the dtbo partition supplies them.
+Install it with:  sudo apt-get update && sudo apt-get install -y device-tree-compiler      (or use --no-merge on purpose)
+Confirmed on the device image: header v2 with a 128276 byte dtb section, i.e. the bootloader reads the dtb from the boot image dtb
+section and ignores the dtb appended to the kernel.

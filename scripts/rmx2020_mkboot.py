@@ -41,6 +41,9 @@ def main():
     ap.add_argument("out", help="kernel build dir (the O= directory, e.g. out)")
     ap.add_argument("-p", "--project", default="oppo6769_19741")
     ap.add_argument("-o", "--output", default="new-boot.img")
+    ap.add_argument("--no-merge", action="store_true",
+                    help="use the plain platform dtb without the oppo overlay (the RMX2020 hardware nodes are then "
+                         "missing unless the bootloader applies a matching dtbo from the dtbo partition)")
     a = ap.parse_args()
 
     boot = os.path.join(a.out, "arch", "arm64", "boot")
@@ -59,12 +62,18 @@ def main():
 
     # 1) merged dtb (platform dtb + oppo overlay), independent of the dtbo partition
     dtb = base_dtb
-    if os.path.exists(overlay) and shutil.which("fdtoverlay"):
+    if a.no_merge:
+        print("[!] --no-merge: using the plain platform dtb (no RMX2020 overlay)")
+    else:
+        if not os.path.exists(overlay):
+            sys.exit("missing %s (build the kernel first, or pick another -p project)" % overlay)
+        if not shutil.which("fdtoverlay"):
+            sys.exit("fdtoverlay not found, it is needed to merge the overlay into the dtb:\n"
+                     "    sudo apt-get update && sudo apt-get install -y device-tree-compiler\n"
+                     "(or use --no-merge if the dtbo partition already has a matching overlay)")
         dtb = os.path.join(tmp, "mt6768-%s.dtb" % a.project)
         subprocess.run(["fdtoverlay", "-i", base_dtb, "-o", dtb, overlay], check=True)
         print("[+] merged %s into mt6768.dtb" % a.project)
-    else:
-        print("[!] WARNING: overlay not merged (missing %s or fdtoverlay); using the plain platform dtb" % overlay)
 
     # 2) unpack the stock image and get its mkbootimg arguments
     print("[*] stock boot image:")
