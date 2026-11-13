@@ -46,3 +46,10 @@ plain mt6768.dtb has none of the RMX2020 hardware nodes (display, touch, charger
 Install it with:  sudo apt-get update && sudo apt-get install -y device-tree-compiler      (or use --no-merge on purpose)
 Confirmed on the device image: header v2 with a 128276 byte dtb section, i.e. the bootloader reads the dtb from the boot image dtb
 section and ignores the dtb appended to the kernel.
+
+## Hang with no oops at ~2.8s in cpufreq (dtb is already the right one)
+last_kmsg ends right after the second "[Power/cpufreq] 8 0, 0, (1000, 750)" (policy init of _mt_cpufreq_init, HYBRID_CPU_DVFS).
+No oops => the CPU polled/accessed hardware that never answered, the watchdog then reset the phone.
+The stock SSPM/DVFSP/SPM firmware keeps the shared SRAM map of the 4.14 BSP (CSRAM 0x110800, mcdi 0x10fc00, dvfsrc 0x110780).
+The 4.19 base shifted it (0x110c00 / 0x110100 / 0x110b80). mt6768.dts and CSRAM_BASE are on the stock map now.
+After booting look for:  RMX2020 dtb check: SRAM map dvfsp(CSRAM)=0x110800 mcdi=0x10fc00 (stock firmware map)

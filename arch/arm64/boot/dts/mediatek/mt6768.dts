@@ -586,10 +586,14 @@ page_owner=on loop.max_part=7";
 		#clock-cells = <1>;
 	};
 
-	mcdi:mcdi@00110100 {
+	/*
+	 * RMX2020: shared SRAM map of the stock (Realme) SSPM/DVFSP/SPM firmware: mcdi 0x10fc00, dvfsrc 0x110780,
+	 * dvfsp(CSRAM) 0x110800. The 4.19 (Xiaomi) base uses a map shifted by 0x400 (0x110100/0x110b80/0x110c00).
+	 */
+	mcdi:mcdi@0010fc00 {
 		compatible = "mediatek,mt6768-mcdi";
 		mediatek,enabled = <1>;
-		reg = <0 0x00110100 0 0x800>,
+		reg = <0 0x0010fc00 0 0x800>,
 		      <0 0x0c53a000 0 0x1000>;
 	};
 
@@ -884,7 +888,7 @@ page_owner=on loop.max_part=7";
 	dvfsrc: dvfsrc@10012000 {
 		compatible = "mediatek,dvfsrc";
 		reg = <0 0x10012000 0 0x1000>,
-			<0 0x00110b80 0 0x80>;
+			<0 0x00110780 0 0x80>;
 	};
 
 	mbist_ao@10013000 {
@@ -1334,10 +1338,10 @@ page_owner=on loop.max_part=7";
 		reg = <0 0x10227000 0 0x1000>;
 	};
 
-	dvfsp: dvfsp@00110c00 {
+	dvfsp: dvfsp@00110800 {
 		compatible = "mediatek,mt6768-dvfsp";
-		reg = <0 0x00110c00 0 0x1400>,
-		      <0 0x00110c00 0 0x1400>;
+		reg = <0 0x00110800 0 0x1400>,
+		      <0 0x00110800 0 0x1400>;
 		state = <1>;
 		change_flag = <0>;
 		little-rise-time = <1000>;

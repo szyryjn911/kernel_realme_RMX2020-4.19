@@ -11,6 +11,7 @@
 #include <linux/kernel.h>
 #include <linux/libfdt.h>
 #include <linux/of.h>
+#include <linux/of_address.h>
 #include <linux/of_fdt.h>
 
 static int __init rmx2020_dtb_check(void)
@@ -26,6 +27,21 @@ static int __init rmx2020_dtb_check(void)
 			nvmem++;
 		if (of_find_property(np, "phys", NULL))
 			phys++;
+	}
+
+	/* shared SRAM map of the firmware: 4.14/stock = dvfsp 0x110800, mcdi 0x10fc00; the 4.19 base used 0x110c00 / 0x110100 */
+	{
+		struct resource r;
+		u64 dvfsp = 0, mcdi = 0;
+
+		np = of_find_compatible_node(NULL, NULL, "mediatek,mt6768-dvfsp");
+		if (np && !of_address_to_resource(np, 0, &r))
+			dvfsp = r.start;
+		np = of_find_compatible_node(NULL, NULL, "mediatek,mt6768-mcdi");
+		if (np && !of_address_to_resource(np, 0, &r))
+			mcdi = r.start;
+		pr_info("RMX2020 dtb check: SRAM map dvfsp(CSRAM)=0x%llx mcdi=0x%llx (%s)\n", dvfsp, mcdi,
+			(dvfsp == 0x110800 && mcdi == 0x10fc00) ? "stock firmware map" : "NOT the stock firmware map");
 	}
 
 	pr_info("RMX2020 dtb check: fdt %u bytes, %d nodes, sspm_mem_key=%d nvmem-cells=%d phys=%d => %s\n",
