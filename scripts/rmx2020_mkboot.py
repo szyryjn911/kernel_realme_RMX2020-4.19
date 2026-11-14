@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--no-merge", action="store_true",
                     help="use the plain platform dtb without the oppo overlay (the RMX2020 hardware nodes are then "
                          "missing unless the bootloader applies a matching dtbo from the dtbo partition)")
+    ap.add_argument("--dtb-file", help="use this dtb exactly as it is (for bisecting dtb problems), skips the merge")
     a = ap.parse_args()
 
     boot = os.path.join(a.out, "arch", "arm64", "boot")
@@ -53,7 +54,7 @@ def main():
         kernel = os.path.join(boot, "Image")
     base_dtb = os.path.join(dts, "mt6768.dtb")
     overlay = os.path.join(dts, a.project + ".dtbo")
-    for f in (kernel, base_dtb):
+    for f in (kernel,) + (() if a.dtb_file else (base_dtb,)):
         if not os.path.exists(f):
             sys.exit("missing " + f + " (build the kernel and the dtbs first)")
 
@@ -62,7 +63,12 @@ def main():
 
     # 1) merged dtb (platform dtb + oppo overlay), independent of the dtbo partition
     dtb = base_dtb
-    if a.no_merge:
+    if a.dtb_file:
+        if not os.path.exists(a.dtb_file):
+            sys.exit("missing " + a.dtb_file)
+        dtb = a.dtb_file
+        print("[!] --dtb-file: using %s as it is (%d bytes), no overlay merge" % (dtb, os.path.getsize(dtb)))
+    elif a.no_merge:
         print("[!] --no-merge: using the plain platform dtb (no RMX2020 overlay)")
     else:
         if not os.path.exists(overlay):

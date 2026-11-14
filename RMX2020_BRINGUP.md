@@ -59,3 +59,11 @@ grep -a "cpufreq trace" /sys/fs/pstore/console-ramoops*          # the last line
 grep -a "Linux version" /sys/fs/pstore/console-ramoops* | cut -c1-120   # must show the git hash of the build you just flashed
 strings -a out/arch/arm64/boot/Image | grep "Linux version"             # hash of the build
 If the hashes differ, pstore still holds an OLD boot (the new kernel died before ramoops or never started).
+
+## New boot image dies before ramoops (pstore unchanged after the bootloop)
+Symptom: after flashing new-boot.img the phone loops every ~5 s and /sys/fs/pstore still holds the previous run (same md5 as before).
+=> the kernel died before ramoops init (~0.5 s) or the bootloader never started it. Bisect with the same kernel, only the dtb changes:
+  1) MKBOOT_ARGS="--no-merge" STOCK_BOOT=boot_backup.img bash RMX2020-4.19.sh mkboot     # plain platform dtb, no overlay merged
+  2) MKBOOT_ARGS="--dtb-file some.dtb" ...                                               # any dtb you want to try
+Plain dtb works but merged does not  => the pre-merged overlay (reserved-memory / root nodes) breaks early boot, or the bootloader
+applies the dtbo partition overlay a second time on top of an already merged dtb.
