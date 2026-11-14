@@ -17,6 +17,13 @@
 #include "mtk_cpufreq_hybrid.h"
 #include "mtk_cpufreq_opp_table.h"
 
+/* RMX2020 bring-up: step trace in the ram console, the last line shows where a hang happened */
+#ifdef CONFIG_OPPO_ARCH_FILE
+#define RMXTRACE(fmt, ...) pr_notice("RMX2020 cpufreq trace: " fmt "\n", ##__VA_ARGS__)
+#else
+#define RMXTRACE(fmt, ...) do { } while (0)
+#endif
+
 #define DCM_ENABLE 1
 /*
  * Global Variables
@@ -978,7 +985,9 @@ static int _sync_opp_tbl_idx(struct mt_cpu_dvfs *p)
 	int i;
 	struct pll_ctrl_t *pll_p = id_to_pll_ctrl(p->Pll_id);
 
+	RMXTRACE("sync: pll=%s armpll_addr=%p div_addr=%p", pll_p->name, pll_p->armpll_addr, pll_p->armpll_div_addr);
 	freq = pll_p->pll_ops->get_cur_freq(pll_p);
+	RMXTRACE("sync: cur freq=%u kHz", freq);
 
 	for (i = p->nr_opp_tbl - 1; i >= 0; i--) {
 		if (freq <= cpu_dvfs_get_freq_by_idx(p, i))
@@ -1195,6 +1204,7 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 	struct em_data_callback em_cb = EM_DATA_CB(of_dev_pm_opp_get_cpu_power);
 
 	FUNC_ENTER(FUNC_LV_MODULE);
+	RMXTRACE("init: policy cpu=%u", policy->cpu);
 
 	policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
 	cpumask_setall(policy->cpus);
@@ -1227,6 +1237,7 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 #endif
 		p->cpu_level = lv;
 
+	RMXTRACE("init: before setup_freqs_table");
 		ret = _mt_cpufreq_setup_freqs_table(policy,
 				opp_tbl_info->opp_tbl, opp_tbl_info->size);
 
@@ -1239,13 +1250,16 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 #endif
 		p->freq_tbl = opp_tbl_m_info->opp_tbl_m;
 
+	RMXTRACE("init: setup_freqs_table done, before cpufreq_lock");
 		cpufreq_lock(flags);
 		/* Sync p */
+	RMXTRACE("init: locked, before sync p");
 		if (_mt_cpufreq_sync_opp_tbl_idx(p) >= 0)
 			if (p->idx_normal_max_opp == -1)
 				p->idx_normal_max_opp = p->idx_opp_tbl;
 
 		/* use cur phy freq is better */
+	RMXTRACE("init: after sync p");
 		policy->cur = cpu_dvfs_get_cur_freq(p);
 		policy->max = cpu_dvfs_get_freq_by_idx(p,
 				p->idx_opp_ppm_limit);
@@ -1254,6 +1268,7 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 		p->mt_policy = policy;
 		p->armpll_is_available = 1;
 
+	RMXTRACE("init: policy->cur=%u", policy->cur);
 		if (turbo_flag && !turbo_is_inited) {
 			turbo_is_inited = mt_cpufreq_turbo_config(id,
 						cpu_dvfs_get_max_freq(p),
@@ -1266,6 +1281,7 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 			p_cci = id_to_cpu_dvfs(MT_CPU_DVFS_CCI);
 
 			/* init cci freq idx */
+	RMXTRACE("init: before sync cci");
 			if (_mt_cpufreq_sync_opp_tbl_idx(p_cci) >= 0)
 				if (p_cci->idx_normal_max_opp == -1)
 					p_cci->idx_normal_max_opp =
@@ -1279,6 +1295,7 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 		}
 #endif
 
+	RMXTRACE("init: before cpuhvfs_set_cluster_on_off");
 #ifdef CONFIG_HYBRID_CPU_DVFS
 #ifdef SINGLE_CLUSTER
 		cpuhvfs_set_cluster_on_off(cpufreq_get_cluster_id(p->cpu_id),
@@ -1287,12 +1304,14 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 		cpuhvfs_set_cluster_on_off(arch_get_cluster_id(p->cpu_id), 1);
 #endif
 #endif
+	RMXTRACE("init: after cluster handling (cpuhvfs_set_cluster_on_off done), before unlock");
 		cpufreq_unlock(flags);
 	}
 #ifdef ENABLE_DOE
 	srate_doe();
 #endif
 
+	RMXTRACE("init: unlocked, before opp framework tables");
 	if (dev_pm_opp_of_get_sharing_cpus(cpu_dev, policy->cpus))
 		tag_pr_notice("failed to share opp framework table\n");
 
@@ -1616,10 +1635,12 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
 #endif
 
 	FUNC_ENTER(FUNC_LV_MODULE);
+	RMXTRACE("probe: start");
 	/* init proc */
 	cpufreq_procfs_init();
 	_mt_cpufreq_aee_init();
 
+	RMXTRACE("probe: procfs+aee done");
 	ret = mt_cpufreq_regulator_map(pdev);
 	if (ret)
 		tag_pr_notice("%s regulator map fail\n", __func__);
@@ -1629,17 +1650,22 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
 	cpuhvfs_set_init_volt();
 #endif
 	/* For SSPM/MCUPM probe */
+	RMXTRACE("probe: regulator map done, before cpuhvfs_set_init_sta");
 	cpuhvfs_set_init_sta();
 	/* Default disable schedule assist DVFS */
+	RMXTRACE("probe: after cpuhvfs_set_init_sta");
 	cpuhvfs_set_sched_dvfs_disable(1);
 #endif
 
 
 	/* Prepare OPP table for PPM in probe to avoid nested lock */
+	RMXTRACE("probe: after cpuhvfs_set_sched_dvfs_disable");
 	for_each_cpu_dvfs(j, p) {
 		/* Prepare pll related address once */
+	RMXTRACE("probe: prepare_pll_addr cpu_dvfs %d", j);
 		prepare_pll_addr(p->Pll_id);
 		/* Prepare pmic related config once */
+	RMXTRACE("probe: prepare_pmic_config cpu_dvfs %d", j);
 		prepare_pmic_config(p);
 #ifndef CONFIG_HYBRID_CPU_DVFS
 		/* Check all PMIC init voltage once */
@@ -1661,13 +1687,16 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
 		}
 #endif
 	}
+	RMXTRACE("probe: before cpufreq_register_driver");
 	cpufreq_register_driver(&_mt_cpufreq_driver);
+	RMXTRACE("probe: after cpufreq_register_driver");
 	hp_online = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
 						   "cpu_dvfs:online",
 						   cpuhp_cpufreq_online,
 						   cpuhp_cpufreq_offline);
 
 	for_each_cpu_dvfs(j, p) {
+	RMXTRACE("probe: sync_opp_tbl_idx cpu_dvfs %d", j);
 		_sync_opp_tbl_idx(p);
 		/* lv should be sync with DVFS_TABLE_TYPE_SB */
 		if (j != MT_CPU_DVFS_CCI)
@@ -1675,7 +1704,9 @@ static int _mt_cpufreq_pdrv_probe(struct platform_device *pdev)
 			p->freq_tbl_for_cpufreq, p->nr_opp_tbl, lv);
 
 	}
+	RMXTRACE("probe: before mt_ppm_register_client");
 	mt_ppm_register_client(PPM_CLIENT_DVFS, &ppm_limit_callback);
+	RMXTRACE("probe: after mt_ppm_register_client");
 	pm_notifier(_mt_cpufreq_pm_callback, 0);
 
 	FUNC_EXIT(FUNC_LV_MODULE);

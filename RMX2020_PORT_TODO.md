@@ -93,6 +93,11 @@ Source of RMX2020 code: szyryjn911/android_kernel_realme_RMX2020 branch 17.0 (4.
 - oppo_dtb_check now also logs the SRAM map ("SRAM map dvfsp(CSRAM)=0x110800 mcdi=0x10fc00 (stock firmware map)")
 - NOT proven on the device: the hang is most likely the cpufreq/DVFSP handshake polling the wrong CSRAM address
 
+## Fix 16 (diagnostic): cpufreq step trace
+- 25+3 'RMX2020 cpufreq trace:' pr_notice lines in cpufreq_v1/src/v2/mtk_cpufreq_main.c (the file that is really built, NOT src/mtk_cpufreq_main.c)
+  and mach/mt6768/mtk_cpufreq_platform.c (get_cur_phy_freq prints the ARMPLL register pointers/values).
+  The LAST trace line in console-ramoops/last_kmsg is where the hang happens. Remove once the hang is understood.
+
 ## Stage 2+ (NOT done): drivers missing in the 4.19 tree
 Config symbols from RMX2020_defconfig that have no Kconfig entry in 4.19 are listed in
 RMX2020_PENDING_CONFIG.txt. Directories that still need to be ported from the 4.14 tree:

@@ -53,3 +53,9 @@ No oops => the CPU polled/accessed hardware that never answered, the watchdog th
 The stock SSPM/DVFSP/SPM firmware keeps the shared SRAM map of the 4.14 BSP (CSRAM 0x110800, mcdi 0x10fc00, dvfsrc 0x110780).
 The 4.19 base shifted it (0x110c00 / 0x110100 / 0x110b80). mt6768.dts and CSRAM_BASE are on the stock map now.
 After booting look for:  RMX2020 dtb check: SRAM map dvfsp(CSRAM)=0x110800 mcdi=0x10fc00 (stock firmware map)
+
+## Reading the cpufreq trace / stale pstore
+grep -a "cpufreq trace" /sys/fs/pstore/console-ramoops*          # the last line = where the hang is
+grep -a "Linux version" /sys/fs/pstore/console-ramoops* | cut -c1-120   # must show the git hash of the build you just flashed
+strings -a out/arch/arm64/boot/Image | grep "Linux version"             # hash of the build
+If the hashes differ, pstore still holds an OLD boot (the new kernel died before ramoops or never started).

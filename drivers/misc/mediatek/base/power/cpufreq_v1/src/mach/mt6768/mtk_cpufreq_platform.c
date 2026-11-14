@@ -432,9 +432,18 @@ unsigned int get_cur_phy_freq(struct pll_ctrl_t *pll_p)
 	unsigned int ckdiv1;
 	unsigned int cur_khz;
 
+#ifdef CONFIG_OPPO_ARCH_FILE
+	pr_notice("RMX2020 cpufreq trace: get_cur_phy_freq: reading armpll %p\n", pll_p->armpll_addr);
+#endif
 	con1 = cpufreq_read(pll_p->armpll_addr);
+#ifdef CONFIG_OPPO_ARCH_FILE
+	pr_notice("RMX2020 cpufreq trace: get_cur_phy_freq: con1=0x%x, reading div %p\n", con1, pll_p->armpll_div_addr);
+#endif
 	cpufreq_ver("con1 = 0x%x\n", con1);
 	ckdiv1 = cpufreq_read(pll_p->armpll_div_addr);
+#ifdef CONFIG_OPPO_ARCH_FILE
+	pr_notice("RMX2020 cpufreq trace: get_cur_phy_freq: div reg=0x%x\n", ckdiv1);
+#endif
 	ckdiv1 = _GET_BITS_VAL_(21:17, ckdiv1);
 
 	cpufreq_ver("clkdiv = %d\n", ckdiv1);
