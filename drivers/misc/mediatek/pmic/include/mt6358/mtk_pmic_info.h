@@ -14,9 +14,12 @@
 #define PMIC6358_E3_CID_CODE    0x5830
 
 
-#ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
-#define IPIMB /* disable for Bring up */
-#endif
+/*
+ * PMIC register access via SSPM IPI (IPIMB) is disabled: the stock SSPM
+ * firmware on RMX2020 does not ack these IPIs and the timeout BUG()s.
+ * Access the PMIC through pwrap directly instead.
+ */
+/* #define IPIMB */
 
 /*
  * Debugfs

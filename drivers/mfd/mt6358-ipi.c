@@ -23,7 +23,7 @@
 #endif
 #endif
 
-#if defined(IPIMB)
+#if 0 /* IPIMB: PMIC via SSPM IPI disabled for RMX2020, see mtk_pmic_info.h */
 #define MAIN_PMIC_WRITE_REGISTER		0x00000201
 #define MAIN_PMIC_READ_REGISTER			0x00000202
 #define MAIN_PMIC_REGULATOR			0x00000203
@@ -165,7 +165,7 @@ int mt6358_ipi_init(struct mt6397_chip *chip)
 {
 	int ret = 0;
 
-#if defined(IPIMB)
+#if 0 /* IPIMB: PMIC via SSPM IPI disabled for RMX2020, see mtk_pmic_info.h */
 	pmic_read_regmap = chip->regmap;
 	chip->regmap = devm_regmap_init(chip->dev, &regmap_pmic_ipi_bus,
 					NULL, &pmic_ipi_regmap_config);
