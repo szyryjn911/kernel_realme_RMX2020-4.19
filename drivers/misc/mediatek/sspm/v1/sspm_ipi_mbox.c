@@ -540,7 +540,7 @@ int sspm_ipi_send_async_wait_ex(int mid, int opts, void *retbuf, int retslot)
 		}
 		atomic_set(&lock_ack[mid], 0);
 	} else { /* use spin method */
-		int retries = 20000; /* was 2000000, see commit message */
+		int retries = 2000000;
 
 		while (retries-- > 0) {
 			int mbno = pin->mbox;
@@ -698,7 +698,7 @@ int sspm_ipi_send_sync(int mid, int opts, void *buffer, int slot,
 
 	/* wait ACK from SSPM */
 	if (opts&IPI_OPT_POLLING) { /* POLLING mode */
-		int retries = 20000; /* was 2000000, see commit message */
+		int retries = 2000000;
 
 		while (retries-- > 0) {
 			ret = sspm_mbox_polling(mbno, mid - mbox->start,
@@ -719,10 +719,8 @@ int sspm_ipi_send_sync(int mid, int opts, void *buffer, int slot,
 		}
 		atomic_set(&lock_ack[mid], 0);
 
-		if (retries == 0) { /* polling mode timeout */
-			pr_err("[SSPM] IPI %d: no ack from SSPM (polling timeout)\n", mid);
+		if (retries == 0) /* polling mode timeout */
 			ret = IPI_TIMEOUT_ACK;
-		}
 
 		ipi_check_ack(mid, opts, ret);
 
