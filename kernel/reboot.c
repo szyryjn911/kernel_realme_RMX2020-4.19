@@ -239,6 +239,21 @@ void migrate_to_reboot_cpu(void)
  *	Shutdown everything and perform a clean reboot.
  *	This is not safe to call in interrupt context.
  */
+/*
+ * RMX2020 bring-up: with "rmx_reboot_panic" on the kernel command line, a
+ * userspace-requested reboot (e.g. init's reboot,recovery after a fatal
+ * error) turns into a panic. A panic ends in a watchdog reset that keeps
+ * DRAM, so the pstore console log survives, which a clean reboot doesn't.
+ */
+static bool rmx_reboot_panic;
+
+static int __init rmx_reboot_panic_setup(char *str)
+{
+	rmx_reboot_panic = true;
+	return 1;
+}
+__setup("rmx_reboot_panic", rmx_reboot_panic_setup);
+
 void kernel_restart(char *cmd)
 {
 	kernel_restart_prepare(cmd);
@@ -248,6 +263,8 @@ void kernel_restart(char *cmd)
 		pr_emerg("Restarting system\n");
 	else
 		pr_emerg("Restarting system with command '%s'\n", cmd);
+	if (rmx_reboot_panic)
+		panic("rmx_reboot_panic: kernel_restart(%s)", cmd ? cmd : "(null)");
 	kmsg_dump(KMSG_DUMP_RESTART);
 	machine_restart(cmd);
 }
