@@ -16,6 +16,7 @@
 #include <linux/syscalls.h>
 #include <linux/syscore_ops.h>
 #include <linux/uaccess.h>
+#include <linux/workqueue.h>
 
 /*
  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
@@ -253,6 +254,36 @@ static int __init rmx_reboot_panic_setup(char *str)
 	return 1;
 }
 __setup("rmx_reboot_panic", rmx_reboot_panic_setup);
+
+/*
+ * RMX2020 bring-up: "rmx_panic_after=<seconds>" panics the kernel that many
+ * seconds after late_initcall. The panic stops the watchdog kicker, the SoC
+ * is reset by the watchdog with DRAM kept, and the pstore console/pmsg logs
+ * of a *running* system (no adb needed) are available on the next boot.
+ */
+static unsigned int rmx_panic_after;
+
+static int __init rmx_panic_after_setup(char *str)
+{
+	if (kstrtouint(str, 0, &rmx_panic_after))
+		rmx_panic_after = 0;
+	return 1;
+}
+__setup("rmx_panic_after=", rmx_panic_after_setup);
+
+static void rmx_panic_after_fn(struct work_struct *work)
+{
+	panic("rmx_panic_after=%u: timed debug panic", rmx_panic_after);
+}
+static DECLARE_DELAYED_WORK(rmx_panic_work, rmx_panic_after_fn);
+
+static int __init rmx_panic_after_init(void)
+{
+	if (rmx_panic_after)
+		schedule_delayed_work(&rmx_panic_work, rmx_panic_after * HZ);
+	return 0;
+}
+late_initcall(rmx_panic_after_init);
 
 void kernel_restart(char *cmd)
 {
