@@ -5062,6 +5062,36 @@ long lcd_enp_bias_setting(unsigned int value)
 	return ret;
 }
 
+/*
+ * Panel power control through the lcd_bias_enp/enn and lcd_vddio18_en
+ * pinctrl states (as the RMX2020 4.14 display driver does), used by panels
+ * such as nt36525b_hlt_hdp_dsi_vdo_lcm.
+ */
+static long lcm_bias_vsp(unsigned int value)
+{
+	if (value)
+		disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_BIAS_ENP1);
+	else
+		disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_BIAS_ENP0);
+	return 0;
+}
+
+static void lcm_bias_vsn(unsigned int value)
+{
+	if (value)
+		disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_BIAS_ENN1);
+	else
+		disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_BIAS_ENN0);
+}
+
+static void lcm_vddio18_enable(unsigned int value)
+{
+	if (value)
+		disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_VDDIO18_EN1);
+	else
+		disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_VDDIO18_EN0);
+}
+
 int ddp_dsi_set_lcm_utils(enum DISP_MODULE_ENUM module,
 	struct LCM_DRIVER *lcm_drv)
 {
@@ -5192,7 +5222,9 @@ int ddp_dsi_set_lcm_utils(enum DISP_MODULE_ENUM module,
 	utils->set_gpio_pull_enable =
 		(int (*)(unsigned int, unsigned char))mt_set_gpio_pull_enable;
 #else
-	utils->set_gpio_lcd_enp_bias = lcd_enp_bias_setting;
+	utils->set_gpio_lcd_enp_bias = lcm_bias_vsp;
+	utils->set_gpio_lcd_enn_bias = lcm_bias_vsn;
+	utils->set_gpio_lcm_vddio_ctl = lcm_vddio18_enable;
 #endif
 #endif
 
